@@ -17,15 +17,30 @@ export function useP2P(userName: string) {
   const [error, setError] = useState<string | null>(null)
   const connectionRef = useRef<P2PConnection | null>(null)
 
-  // 初始化连接
+  // 初始化连接并恢复状态
   useEffect(() => {
-    if (!connectionRef.current) {
+    if (!connectionRef.current && userName) {
       connectionRef.current = new P2PConnection(userName)
-      
+
       // 监听成员变化
       connectionRef.current.onMembersChange((newMembers) => {
         setMembers(newMembers)
       })
+
+      // 尝试从 localStorage 恢复连接状态
+      const savedState = localStorage.getItem('p2p_connection_state')
+      if (savedState) {
+        try {
+          const state = JSON.parse(savedState)
+          if (state.roomId && state.isConnected) {
+            setRoomId(state.roomId)
+            setIsGM(state.isGM)
+            setIsConnected(state.isConnected)
+          }
+        } catch (err) {
+          console.error('恢复P2P状态失败:', err)
+        }
+      }
     }
   }, [userName])
 
@@ -37,11 +52,18 @@ export function useP2P(userName: string) {
       setError(null)
       const connection = connectionRef.current!
       const newRoomId = await connection.createRoom()
-      
+
       setRoomId(newRoomId)
       setIsGM(true)
       setIsConnected(true)
-      
+
+      // 保存连接状态到 localStorage
+      localStorage.setItem('p2p_connection_state', JSON.stringify({
+        roomId: newRoomId,
+        isGM: true,
+        isConnected: true
+      }))
+
       return newRoomId
     } catch (err) {
       const errorMsg = '创建房间失败，请重试'
@@ -59,10 +81,17 @@ export function useP2P(userName: string) {
       setError(null)
       const connection = connectionRef.current!
       await connection.joinRoom(targetRoomId)
-      
+
       setRoomId(targetRoomId)
       setIsGM(false)
       setIsConnected(true)
+
+      // 保存连接状态到 localStorage
+      localStorage.setItem('p2p_connection_state', JSON.stringify({
+        roomId: targetRoomId,
+        isGM: false,
+        isConnected: true
+      }))
     } catch (err) {
       const errorMsg = '加入房间失败，请检查房间码是否正确'
       setError(errorMsg)
@@ -82,6 +111,9 @@ export function useP2P(userName: string) {
       setIsGM(false)
       setIsConnected(false)
       setMembers([])
+
+      // 清除保存的连接状态
+      localStorage.removeItem('p2p_connection_state')
     }
   }, [])
 
@@ -105,15 +137,9 @@ export function useP2P(userName: string) {
     }
   }, [])
 
-  // 清理
-  useEffect(() => {
-    return () => {
-      const connection = connectionRef.current
-      if (connection && connection.isConnected()) {
-        connection.leaveRoom()
-      }
-    }
-  }, [])
+  // 注意：不在这里自动清理连接，因为切换标签页会导致组件卸载
+  // 用户需要主动点击"离开房间"按钮来断开连接
+  // 或者在浏览器关闭时自动断开（由 PeerJS 处理）
 
   return {
     isConnected,
