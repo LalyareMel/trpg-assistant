@@ -20,6 +20,13 @@ function getGlobalP2PConnection(userName: string): P2PConnection {
 }
 
 /**
+ * 清除全局 P2P 连接实例
+ */
+function clearGlobalP2PConnection() {
+  globalP2PConnection = null
+}
+
+/**
  * 使用P2P连接
  */
 export function useP2P(userName: string) {
@@ -37,10 +44,13 @@ export function useP2P(userName: string) {
     // 使用全局单例连接
     connectionRef.current = getGlobalP2PConnection(userName)
 
-    // 监听成员变化
-    connectionRef.current.onMembersChange((newMembers) => {
+    // 监听成员变化（使用 ref 避免重复注册）
+    const membersChangeHandler = (newMembers: RoomMember[]) => {
       setMembers(newMembers)
-    })
+    }
+
+    // 清除旧的回调并设置新的
+    connectionRef.current.onMembersChange(membersChangeHandler)
 
     // 尝试从 localStorage 恢复连接状态
     const savedState = localStorage.getItem('p2p_connection_state')
@@ -134,6 +144,10 @@ export function useP2P(userName: string) {
 
       // 清除保存的连接状态
       localStorage.removeItem('p2p_connection_state')
+
+      // 清除全局单例，下次可以重新创建
+      clearGlobalP2PConnection()
+      connectionRef.current = null
     }
   }, [])
 

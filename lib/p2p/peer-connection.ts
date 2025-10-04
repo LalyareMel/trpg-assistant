@@ -68,6 +68,11 @@ export class P2PConnection {
       this.roomId = this.generateRoomId()
       this.isGM = true
 
+      // 设置超时（30秒）
+      const timeout = setTimeout(() => {
+        reject(new Error('创建房间超时，请检查网络连接'))
+      }, 30000)
+
       // 创建Peer连接，使用房间ID作为Peer ID
       this.peer = new Peer(`room_${this.roomId}`, {
         config: {
@@ -79,8 +84,9 @@ export class P2PConnection {
       })
 
       this.peer.on('open', (id) => {
+        clearTimeout(timeout)
         console.log('✅ 房间创建成功，房间码:', this.roomId)
-        
+
         // 添加自己到成员列表
         this.members.set(this.userId, {
           id: this.userId,
@@ -88,7 +94,7 @@ export class P2PConnection {
           isGM: true,
           isOnline: true,
         })
-        
+
         this.notifyMembersChange()
         resolve(this.roomId!)
       })
@@ -98,6 +104,7 @@ export class P2PConnection {
       })
 
       this.peer.on('error', (err) => {
+        clearTimeout(timeout)
         console.error('❌ Peer错误:', err)
         reject(err)
       })
@@ -112,6 +119,11 @@ export class P2PConnection {
       this.roomId = roomId
       this.isGM = false
 
+      // 设置超时（30秒）
+      const timeout = setTimeout(() => {
+        reject(new Error('加入房间超时，请检查房间码是否正确或网络连接'))
+      }, 30000)
+
       // 创建自己的Peer连接
       this.peer = new Peer(this.userId, {
         config: {
@@ -124,26 +136,28 @@ export class P2PConnection {
 
       this.peer.on('open', () => {
         console.log('✅ Peer连接已建立')
-        
+
         // 连接到GM（房间主机）
         const gmPeerId = `room_${roomId}`
         const conn = this.peer!.connect(gmPeerId)
 
         conn.on('open', () => {
+          clearTimeout(timeout)
           console.log('✅ 已连接到房间')
           this.connections.set(gmPeerId, conn)
-          
+
           // 发送加入消息
           this.sendMessage('user_join', {
             userId: this.userId,
             userName: this.userName,
           })
-          
+
           this.setupConnectionHandlers(conn)
           resolve()
         })
 
         conn.on('error', (err) => {
+          clearTimeout(timeout)
           console.error('❌ 连接房间失败:', err)
           reject(err)
         })
@@ -155,6 +169,7 @@ export class P2PConnection {
       })
 
       this.peer.on('error', (err) => {
+        clearTimeout(timeout)
         console.error('❌ Peer错误:', err)
         reject(err)
       })
@@ -304,6 +319,17 @@ export class P2PConnection {
   }
 
   /**
+   * 清除指定类型的所有消息处理器
+   */
+  clearMessageHandlers(type?: MessageType) {
+    if (type) {
+      this.messageHandlers.delete(type)
+    } else {
+      this.messageHandlers.clear()
+    }
+  }
+
+  /**
    * 监听成员变化
    */
   onMembersChange(callback: (members: RoomMember[]) => void) {
@@ -366,8 +392,12 @@ export class P2PConnection {
       this.peer = null
     }
 
+    // 清除所有状态
     this.roomId = null
+    this.isGM = false
     this.members.clear()
+    this.messageHandlers.clear()
+    this.onMembersChangeCallback = null
     this.notifyMembersChange()
   }
 
