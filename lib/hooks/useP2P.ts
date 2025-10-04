@@ -6,6 +6,19 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { P2PConnection, P2PMessage, RoomMember, MessageType } from '@/lib/p2p/peer-connection'
 import { DiceRoll } from '@/types'
 
+// 全局单例 P2P 连接，确保在整个应用生命周期中只有一个实例
+let globalP2PConnection: P2PConnection | null = null
+
+/**
+ * 获取或创建全局 P2P 连接实例
+ */
+function getGlobalP2PConnection(userName: string): P2PConnection {
+  if (!globalP2PConnection) {
+    globalP2PConnection = new P2PConnection(userName)
+  }
+  return globalP2PConnection
+}
+
 /**
  * 使用P2P连接
  */
@@ -19,27 +32,34 @@ export function useP2P(userName: string) {
 
   // 初始化连接并恢复状态
   useEffect(() => {
-    if (!connectionRef.current && userName) {
-      connectionRef.current = new P2PConnection(userName)
+    if (!userName) return
 
-      // 监听成员变化
-      connectionRef.current.onMembersChange((newMembers) => {
-        setMembers(newMembers)
-      })
+    // 使用全局单例连接
+    connectionRef.current = getGlobalP2PConnection(userName)
 
-      // 尝试从 localStorage 恢复连接状态
-      const savedState = localStorage.getItem('p2p_connection_state')
-      if (savedState) {
-        try {
-          const state = JSON.parse(savedState)
-          if (state.roomId && state.isConnected) {
-            setRoomId(state.roomId)
-            setIsGM(state.isGM)
-            setIsConnected(state.isConnected)
+    // 监听成员变化
+    connectionRef.current.onMembersChange((newMembers) => {
+      setMembers(newMembers)
+    })
+
+    // 尝试从 localStorage 恢复连接状态
+    const savedState = localStorage.getItem('p2p_connection_state')
+    if (savedState) {
+      try {
+        const state = JSON.parse(savedState)
+        if (state.roomId && state.isConnected) {
+          setRoomId(state.roomId)
+          setIsGM(state.isGM)
+          setIsConnected(state.isConnected)
+
+          // 触发一次成员列表更新
+          const currentMembers = connectionRef.current.getMembers()
+          if (currentMembers.length > 0) {
+            setMembers(currentMembers)
           }
-        } catch (err) {
-          console.error('恢复P2P状态失败:', err)
         }
+      } catch (err) {
+        console.error('恢复P2P状态失败:', err)
       }
     }
   }, [userName])
