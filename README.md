@@ -3,8 +3,10 @@
 一个功能完整的桌面角色扮演游戏(TRPG)辅助工具，支持COC、DND等多种游戏系统。
 
 **🌐 支持在线多人实时协作！**
-- **P2P联机** - 零配置，创建房间即可开始（推荐！）
+- **P2P联机** - 零配置，3分钟开始（推荐！）
 - **Supabase后端** - 数据持久化，适合长期使用
+
+**🚀 在线演示：** [https://trpg-assistant.vercel.app](https://trpg-assistant.vercel.app)（部署后更新此链接）
 
 ## ✨ 功能特性
 
@@ -112,18 +114,11 @@ yarn dev
 4. 分享房间码给朋友
 5. 开始游戏！
 
-**详细指南：[P2P_GUIDE.md](./P2P_GUIDE.md)**
+**详细指南：** 查看 [P2P_GUIDE.md](./P2P_GUIDE.md)
 
 #### 方式2: Supabase后端（需配置）
 
-如果需要数据持久化和高级功能：
-
-1. 查看详细配置指南：**[SUPABASE_SETUP.md](./SUPABASE_SETUP.md)**
-2. 按照步骤配置Supabase
-3. 重启开发服务器
-4. 右下角显示"在线模式"即配置成功！
-
-**在线功能使用指南：[ONLINE_GUIDE.md](./ONLINE_GUIDE.md)**
+如果需要数据持久化和高级功能，查看 [DEPLOYMENT.md](./DEPLOYMENT.md) 中的 Supabase 配置部分。
 
 ### 构建生产版本
 
@@ -207,14 +202,21 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 - [x] COC和DND角色卡
 - [x] 战斗追踪器
 - [x] 房间管理
-- [ ] Supabase后端集成
-- [ ] 实时多人协作
+- [x] P2P联机（零配置）
+- [x] 实时多人协作
+- [x] Supabase后端集成（可选）
 - [ ] 用户认证系统
 - [ ] 角色卡模板库
 - [ ] 战斗日志导出
 - [ ] 移动端优化
 - [ ] 暗色/亮色主题切换
 - [ ] 更多游戏系统支持
+
+## 📚 文档
+
+- **[README.md](./README.md)** - 项目总览（本文档）
+- **[P2P_GUIDE.md](./P2P_GUIDE.md)** - P2P联机详细指南
+- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - 部署到 Vercel 和 Supabase 配置
 
 ## 📝 许可证
 
