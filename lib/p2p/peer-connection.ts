@@ -310,12 +310,30 @@ export class P2PConnection {
 
   /**
    * 注册消息处理器
+   * 注意：为了避免重复注册，建议在使用前先清除旧的处理器
    */
   onMessage(type: MessageType, handler: (message: P2PMessage) => void) {
     if (!this.messageHandlers.has(type)) {
       this.messageHandlers.set(type, [])
     }
-    this.messageHandlers.get(type)!.push(handler)
+    // 检查是否已经注册过相同的处理器（通过引用比较）
+    const handlers = this.messageHandlers.get(type)!
+    if (!handlers.includes(handler)) {
+      handlers.push(handler)
+    }
+  }
+
+  /**
+   * 移除特定的消息处理器
+   */
+  offMessage(type: MessageType, handler: (message: P2PMessage) => void) {
+    const handlers = this.messageHandlers.get(type)
+    if (handlers) {
+      const index = handlers.indexOf(handler)
+      if (index > -1) {
+        handlers.splice(index, 1)
+      }
+    }
   }
 
   /**
@@ -364,6 +382,13 @@ export class P2PConnection {
    */
   getUserId(): string {
     return this.userId
+  }
+
+  /**
+   * 获取用户名
+   */
+  getUserName(): string {
+    return this.userName
   }
 
   /**

@@ -20,7 +20,13 @@ export default function RoomManager() {
   useEffect(() => {
     const saved = localStorage.getItem('trpg_rooms')
     if (saved) {
-      setRooms(JSON.parse(saved))
+      const rooms = JSON.parse(saved)
+      // 转换Date字段
+      const roomsWithDates = rooms.map((room: Room) => ({
+        ...room,
+        createdAt: new Date(room.createdAt)
+      }))
+      setRooms(roomsWithDates)
     }
   }, [])
 

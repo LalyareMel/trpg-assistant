@@ -84,8 +84,8 @@ export default function CombatTracker() {
   }
 
   const nextTurn = () => {
-    if (!combat) return
-    
+    if (!combat || combat.combatants.length === 0) return
+
     let nextTurn = combat.currentTurn + 1
     let nextRound = combat.round
 

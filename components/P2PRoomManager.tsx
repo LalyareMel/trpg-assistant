@@ -249,7 +249,7 @@ export default function P2PRoomManager() {
                   <User className="text-gray-400" size={20} />
                 )}
                 <span className="font-medium text-gray-800">{member.name}</span>
-                {member.id === p2p.members.find(m => m.name === userName)?.id && (
+                {member.id === p2p.getCurrentUserId() && (
                   <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
                     你
                   </span>

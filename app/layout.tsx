@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import ErrorBoundary from '@/components/ErrorBoundary'
 
 export const metadata: Metadata = {
   title: 'TRPG助手 - 跑团辅助工具',
@@ -13,7 +14,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-CN">
-      <body>{children}</body>
+      <body>
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
+      </body>
     </html>
   )
 }

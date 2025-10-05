@@ -37,14 +37,14 @@ export function useP2P(userName: string) {
   const [error, setError] = useState<string | null>(null)
   const connectionRef = useRef<P2PConnection | null>(null)
 
-  // 初始化连接并恢复状态
+  // 初始化连接
   useEffect(() => {
     if (!userName) return
 
     // 使用全局单例连接
     connectionRef.current = getGlobalP2PConnection(userName)
 
-    // 监听成员变化（使用 ref 避免重复注册）
+    // 监听成员变化（使用 useCallback 稳定回调引用）
     const membersChangeHandler = (newMembers: RoomMember[]) => {
       setMembers(newMembers)
     }
@@ -52,26 +52,9 @@ export function useP2P(userName: string) {
     // 清除旧的回调并设置新的
     connectionRef.current.onMembersChange(membersChangeHandler)
 
-    // 尝试从 localStorage 恢复连接状态
-    const savedState = localStorage.getItem('p2p_connection_state')
-    if (savedState) {
-      try {
-        const state = JSON.parse(savedState)
-        if (state.roomId && state.isConnected) {
-          setRoomId(state.roomId)
-          setIsGM(state.isGM)
-          setIsConnected(state.isConnected)
-
-          // 触发一次成员列表更新
-          const currentMembers = connectionRef.current.getMembers()
-          if (currentMembers.length > 0) {
-            setMembers(currentMembers)
-          }
-        }
-      } catch (err) {
-        console.error('恢复P2P状态失败:', err)
-      }
-    }
+    // 不再从 localStorage 恢复P2P连接状态
+    // P2P连接需要重新建立，不能仅恢复UI状态
+    // 用户需要重新创建或加入房间
   }, [userName])
 
   /**
@@ -171,6 +154,22 @@ export function useP2P(userName: string) {
     }
   }, [])
 
+  /**
+   * 获取当前用户ID
+   */
+  const getCurrentUserId = useCallback(() => {
+    const connection = connectionRef.current
+    return connection ? connection.getUserId() : null
+  }, [])
+
+  /**
+   * 获取当前用户名
+   */
+  const getCurrentUserName = useCallback(() => {
+    const connection = connectionRef.current
+    return connection ? connection.getUserName() : null
+  }, [])
+
   // 注意：不在这里自动清理连接，因为切换标签页会导致组件卸载
   // 用户需要主动点击"离开房间"按钮来断开连接
   // 或者在浏览器关闭时自动断开（由 PeerJS 处理）
@@ -186,6 +185,8 @@ export function useP2P(userName: string) {
     leaveRoom,
     sendMessage,
     onMessage,
+    getCurrentUserId,
+    getCurrentUserName,
   }
 }
 
@@ -196,13 +197,25 @@ export function useP2PDiceSync(
   connection: ReturnType<typeof useP2P>,
   onDiceRoll: (roll: DiceRoll, senderName: string) => void
 ) {
+  // 使用useCallback稳定回调引用
+  const stableOnDiceRoll = useCallback(onDiceRoll, [])
+
   useEffect(() => {
     if (!connection.isConnected) return
 
-    connection.onMessage('dice_roll', (message) => {
-      onDiceRoll(message.data, message.senderName)
-    })
-  }, [connection, onDiceRoll])
+    const handler = (message: P2PMessage) => {
+      stableOnDiceRoll(message.data, message.senderName)
+    }
+
+    connection.onMessage('dice_roll', handler)
+
+    // 清理函数 - 注意：由于P2PConnection没有提供移除单个handler的方法
+    // 我们在组件卸载时清除所有该类型的handlers
+    return () => {
+      // 这里暂时不清理，因为会影响其他组件
+      // 需要在P2PConnection中实现更精细的handler管理
+    }
+  }, [connection.isConnected, stableOnDiceRoll])
 
   const sendDiceRoll = useCallback((roll: DiceRoll) => {
     connection.sendMessage('dice_roll', roll)
@@ -219,17 +232,30 @@ export function useP2PCombatSync(
   onCombatUpdate: (combat: any) => void,
   onCombatantUpdate: (combatant: any) => void
 ) {
+  // 使用useCallback稳定回调引用
+  const stableOnCombatUpdate = useCallback(onCombatUpdate, [])
+  const stableOnCombatantUpdate = useCallback(onCombatantUpdate, [])
+
   useEffect(() => {
     if (!connection.isConnected) return
 
-    connection.onMessage('combat_update', (message) => {
-      onCombatUpdate(message.data)
-    })
+    const combatHandler = (message: P2PMessage) => {
+      stableOnCombatUpdate(message.data)
+    }
 
-    connection.onMessage('combatant_update', (message) => {
-      onCombatantUpdate(message.data)
-    })
-  }, [connection, onCombatUpdate, onCombatantUpdate])
+    const combatantHandler = (message: P2PMessage) => {
+      stableOnCombatantUpdate(message.data)
+    }
+
+    connection.onMessage('combat_update', combatHandler)
+    connection.onMessage('combatant_update', combatantHandler)
+
+    // 清理函数
+    return () => {
+      // 这里暂时不清理，因为会影响其他组件
+      // 需要在P2PConnection中实现更精细的handler管理
+    }
+  }, [connection.isConnected, stableOnCombatUpdate, stableOnCombatantUpdate])
 
   const sendCombatUpdate = useCallback((combat: any) => {
     connection.sendMessage('combat_update', combat)

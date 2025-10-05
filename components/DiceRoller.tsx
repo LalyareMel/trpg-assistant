@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { DiceRoll, DiceType } from '@/types'
 import { executeDiceRoll, quickRoll, cocCheck, dndCheck } from '@/lib/dice'
 import { Dices, Trash2, Copy } from 'lucide-react'
@@ -9,6 +9,27 @@ export default function DiceRoller() {
   const [expression, setExpression] = useState('')
   const [history, setHistory] = useState<DiceRoll[]>([])
   const [isRolling, setIsRolling] = useState(false)
+
+  // 从localStorage加载历史记录
+  useEffect(() => {
+    const saved = localStorage.getItem('trpg_dice_history')
+    if (saved) {
+      const rolls = JSON.parse(saved)
+      // 转换Date字段
+      const rollsWithDates = rolls.map((roll: DiceRoll) => ({
+        ...roll,
+        timestamp: new Date(roll.timestamp)
+      }))
+      setHistory(rollsWithDates)
+    }
+  }, [])
+
+  // 保存历史记录到localStorage
+  useEffect(() => {
+    if (history.length > 0) {
+      localStorage.setItem('trpg_dice_history', JSON.stringify(history))
+    }
+  }, [history])
 
   const diceTypes: DiceType[] = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100']
 

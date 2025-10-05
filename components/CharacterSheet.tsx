@@ -17,7 +17,9 @@ export default function CharacterSheet() {
   useEffect(() => {
     const saved = localStorage.getItem('trpg_characters')
     if (saved) {
-      setCharacters(JSON.parse(saved))
+      const chars = JSON.parse(saved)
+      // 不需要转换Date字段，因为Character类型中没有Date字段
+      setCharacters(chars)
     }
   }, [])
 
